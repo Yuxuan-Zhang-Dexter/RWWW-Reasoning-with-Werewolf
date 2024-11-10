@@ -10,5 +10,6 @@ class Werewolf(Role):
                 "night": "Choose one player to eliminate during the Night phase."
             },
              win_condition="Werewolf eliminates enough Villagers and the Prophet to prevent opposition.",
-            player=player
+            player=player,
+            target=""
         )

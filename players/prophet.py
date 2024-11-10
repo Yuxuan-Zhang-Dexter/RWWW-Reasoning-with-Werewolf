@@ -10,6 +10,7 @@ class Prophet(Role):
                 "night": "Choose one player to reveal their true identity each Night phase."
             },
             win_condition="Werewolf is eliminated before they eliminate all Villagers and the Prophet.",
-            player=player
+            player=player,
+            target = ""
         )
 

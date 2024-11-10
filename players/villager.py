@@ -9,5 +9,6 @@ class Villager(Role):
                 "vote": "Vote to eliminate players suspected of being the Werewolf."
             },
             win_condition="Werewolf is eliminated before they eliminate all Villagers and the Prophet.",
-            player=player
+            player=player,
+            target=""
         )
