@@ -2,6 +2,7 @@ from players import Villager, Werewolf, Prophet
 import json
 import random
 from openai import OpenAI
+from copy import deepcopy
 
 class GameSession:
     def __init__(self, config):
@@ -59,13 +60,13 @@ class GameSession:
             print("Day Phase: Discussion and Voting")
             self.handle_day_phase()
             self.phase = "Night"
-        # elif self.phase == "Night":
-        #     print("Night Phase: Werewolf acts, Prophet reveals")
-        #     self.handle_night_phase()
-        #     self.phase = "Day"
+        elif self.phase == "Night":
+            print("Night Phase: Werewolf acts, Prophet reveals")
+            self.handle_night_phase()
+            self.phase = "Day"
         self.track_round += 1
         
-    def generate_prompt(self, player, role, action_type):
+    def generate_prompt(self, player, role, action_type, player_list = []):
         if action_type == "discussion":
             return (
             f"You are playing the role of a {role.name} as {player} in a game of Werewolf. Your objective is to fulfill your role's "
@@ -79,10 +80,10 @@ class GameSession:
             f"use your role's traits to fulfill your objective!"
             f"Please based on discussion mentioned above. and Please be concise and say a few sentences, one or two sentences"
         )
-        # elif action_type == "night" and role.name == "Werewolf":
-        #     return f"You are the Werewolf. It’s the Night phase. Choose one player to eliminate from the game."
-        # elif action_type == "reveal" and role.name == "Prophet":
-        #     return f"You are the Prophet. It’s the Night phase. Choose one player to reveal their role."
+        elif action_type == "night" and role.name == "Werewolf":
+            return f"You are the Werewolf. It’s the Night phase. Choose one player to eliminate from the game. You could consider eliminating a player that is a risk to you, like accusing you of being the werewolf, or has suspicions about you. However, if you are too obvious in who you kill, that might actually give you away, so choose carefully. Currently, killable players are {player_list}. Only return the name of the player you want to kill."
+        elif action_type == "reveal" and role.name == "Prophet":
+            return f"You are the Prophet. It’s the Night phase. Choose one player to reveal their role. You should consider revealing a player who you might suspect of being the wolf. You should avoid revealing players you have revealed in previous rounds. Currently, revealable players are {player_list}. Only return the name of the player you want to reveal."
 
     
     def get_response_from_openai(self, messages):
@@ -113,34 +114,54 @@ class GameSession:
             # update role chat history and discussion chat history
             generated_prompt += [{'role': 'system', 'content': response}]
             discussion_history +=  f" {player}: {response} "
-            role.update_chat_history([{'role': 'system', 'content': f'In Round {self.track_round}, you said: ' + response}])
+            role.update_chat_history([{'role': 'system', 'content': f'In Round {self.track_round} Day Phase, you said: ' + response}])
+        # update everyone's chat history with all discussion for current round
         for player in sorted(self.alive_players):
             role = self.players[player]
-            role.update_chat_history([{'role': 'system', 'content': f'In Round {self.track_round}, this is what everyone said. {discussion_history}'}])
-        
-
-
-            
-            
-            
-            
+            role.update_chat_history([{'role': 'system', 'content': f'In Round {self.track_round} Day Phase, this is what everyone said. {discussion_history}'}])
+              
         # # Vote
         # vote = self.get_response_from_openai(player, "day")
         # self.votes[player] = vote
         # print(f"{player} votes to eliminate {vote}.")
         # self.resolve_votes()
 
-    # def handle_night_phase(self):
-    #     werewolf = self.get_role_player("Werewolf")
-    #     prophet = self.get_role_player("Prophet")
-    #     if werewolf and prophet:
-    #         # Werewolf action
-    #         target = self.get_response_from_openai(werewolf, "night")
-    #         print(f"Werewolf chooses to kill {target}.")
-    #         self.alive_players.remove(target)
-    #         # Prophet action
-    #         reveal_target = self.get_response_from_openai(prophet, "reveal")
-    #         print(f"Prophet discovers {reveal_target}'s role is {self.players[reveal_target].name}.")
+    def is_valid_target(self, target, valid_players):
+        return target in self.alive_players
+
+    def handle_night_phase(self):
+        wolf_name, wolf_role = self.get_role_player("Werewolf")
+        prophet_name, prophet_role = self.get_role_player("Prophet")
+
+        # prophet goes first, then werewolf goes
+        if prophet_role:
+            # Prophet action
+            # Werewolf action]
+            revealable_players = deepcopy(self.alive_players)
+            revealable_players.remove(prophet_name)
+            print(revealable_players)
+            reveal_prompt = [{'role': 'system', 'content': self.generate_prompt(prophet_name, prophet_role, 'reveal', player_list = revealable_players)}]
+            reveal_target = self.get_response_from_openai(prophet_role.chat_history + reveal_prompt)
+            if self.is_valid_target(reveal_target, revealable_players):
+                print(f"Prophet discovers {reveal_target}'s role is {self.players[reveal_target].name}.")
+
+        if wolf_role:
+            # Werewolf action]
+            killable_players = deepcopy(self.alive_players)
+            killable_players.remove(wolf_name)
+            print(killable_players)
+            kill_prompt = [{'role': 'system', 'content': self.generate_prompt(wolf_name, wolf_role, 'night', player_list = killable_players)}]
+            target = self.get_response_from_openai(wolf_role.chat_history + kill_prompt)
+            if self.is_valid_target(target, killable_players):
+                self.alive_players.remove(target)
+                print(f"Werewolf chooses to kill {target}. Updated players list: {self.alive_players}")
+
+        for player in sorted(self.alive_players):
+            role = self.players[player]
+            role.update_chat_history([{'role': 'system', 'content': f'In Round {self.track_round} Night phase, {target} was mercilessly killed by the wolf. The prophet has revealed that {reveal_target} is a {self.players[reveal_target].name}.'}])
+         
+        
+
 
     # def resolve_votes(self):
     #     vote_counts = {}
@@ -151,11 +172,11 @@ class GameSession:
     #         print(f"{eliminated} is eliminated.")
     #         self.alive_players.remove(eliminated)
 
-    # def get_role_player(self, role_name):
-    #     for player, role in self.players.items():
-    #         if role.name == role_name and player in self.alive_players:
-    #             return player
-    #     return None
+    def get_role_player(self, role_name):
+        for player, role in self.players.items():
+            if role.name == role_name and player in self.alive_players:
+                return player, role
+        return None
 
     # def check_win_conditions(self):
     #     werewolf_alive = any(role.name == "Werewolf" for role in self.players.values() if role in self.alive_players)
