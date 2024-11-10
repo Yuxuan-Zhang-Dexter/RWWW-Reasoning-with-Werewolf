@@ -48,6 +48,7 @@ class GameSession:
             temperature=0.7
         )
         print(f"Verify Initialization: {completion.choices[0].message.content}")
+        # updates each role's chat history with game rule
         for player, role in self.players.items():
             system_message += [{"role": "system", "content": role.description}]
             role.update_chat_history(system_message)
@@ -102,13 +103,20 @@ class GameSession:
         for player in sorted(self.alive_players):
             role = self.players[player]
             # get prompt
-            generated_prompt = [{'role': 'user', 'content':  f'In the {self.track_round} round, previous players have already a discussion: {discussion_history} ' + self.generate_prompt(player, role, 'discussion')}]
+            generated_prompt = ''
+            if not discussion_history: # if first to discuss
+                generated_prompt = [{'role': 'user', 'content':  f'It is your turn to discuss. In round {self.track_round}, you are the first to discuss. ' + self.generate_prompt(player, role, 'discussion')}]    
+            else:
+                generated_prompt = [{'role': 'user', 'content':  f'It is your turn to discuss. In round {self.track_round}, previous players have already a discussion: {discussion_history} ' + self.generate_prompt(player, role, 'discussion')}]
             response = self.get_response_from_openai(role.chat_history + generated_prompt)
             print(f"{player}: {response}")
             # update role chat history and discussion chat history
             generated_prompt += [{'role': 'system', 'content': response}]
-            role.update_chat_history(generated_prompt)
             discussion_history +=  f" {player}: {response} "
+            role.update_chat_history([{'role': 'system', 'content': f'In Round {self.track_round}, you said: ' + response}])
+        for player in sorted(self.alive_players):
+            role = self.players[player]
+            role.update_chat_history([{'role': 'system', 'content': f'In Round {self.track_round}, this is what everyone said. {discussion_history}'}])
         
 
 
