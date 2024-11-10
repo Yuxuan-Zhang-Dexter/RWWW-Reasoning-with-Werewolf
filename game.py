@@ -13,7 +13,7 @@ class GameSession:
         self.votes = {}
         self.alive_players = set(self.players.keys())
         self.system_prompt = config['game_settings']['system_prompt']
-        self.track_round = 0
+        self.track_round = 1
 
     def initialize_role(self, role_name, player):
         if role_name == "Villager":
@@ -62,11 +62,12 @@ class GameSession:
         #     print("Night Phase: Werewolf acts, Prophet reveals")
         #     self.handle_night_phase()
         #     self.phase = "Day"
+        self.track_round += 1
         
-    def generate_prompt(self, role, action_type):
+    def generate_prompt(self, player, role, action_type):
         if action_type == "discussion":
             return (
-            f"You are playing the role of a {role.name} in a game of Werewolf. Your objective is to fulfill your role's "
+            f"You are playing the role of a {role.name} as {player} in a game of Werewolf. Your objective is to fulfill your role's "
             f"unique goals without revealing your true identity. It is the discussion phase, and your task is to discuss "
             f"who might be the suspicious Werewolf based on the interactions and statements of other players.\n\n"
             f"Role-specific guidance:\n"
@@ -75,7 +76,7 @@ class GameSession:
             f"- Aim to guide the discussion while keeping your role hidden, and focus on achieving your win condition: {role.win_condition}.\n\n"
             f"Engage in the discussion phase with careful observations and strategic statements. Stay in character and "
             f"use your role's traits to fulfill your objective!"
-            f"Please based on discussion mentioned above"
+            f"Please based on discussion mentioned above. and Please be concise and say a few sentences, one or two sentences"
         )
         # elif action_type == "night" and role.name == "Werewolf":
         #     return f"You are the Werewolf. It’s the Night phase. Choose one player to eliminate from the game."
@@ -88,7 +89,7 @@ class GameSession:
         response = client.chat.completions.create(
             model = self.model,
             messages = messages,
-            max_tokens=50,
+            max_tokens=100,
             temperature=0.7
         )
 
@@ -97,17 +98,17 @@ class GameSession:
     def handle_day_phase(self):
         self.votes = {player: None for player in self.alive_players}
         # Discussion Session
-        discussion_history = []
+        discussion_history = ''
         for player in sorted(self.alive_players):
             role = self.players[player]
             # get prompt
-            generated_prompt = discussion_history + [{'role': 'user', 'content': self.generate_prompt(role, 'discussion')}]
+            generated_prompt = [{'role': 'user', 'content':  f'In the {self.track_round} round, previous players have already a discussion: {discussion_history} ' + self.generate_prompt(player, role, 'discussion')}]
             response = self.get_response_from_openai(role.chat_history + generated_prompt)
             print(f"{player}: {response}")
             # update role chat history and discussion chat history
             generated_prompt += [{'role': 'system', 'content': response}]
             role.update_chat_history(generated_prompt)
-            discussion_history +=  [{'role': 'user', 'content': f"{player}: {response}"}]
+            discussion_history +=  f" {player}: {response} "
         
 
 

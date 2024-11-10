@@ -23,6 +23,12 @@ The project currently supports:
    pip install -r requirements.txt
    ```
 
+3. **Set Up OpenAI API Key**: 
+   Set the OpenAI API key in your environment. You can do this by adding it to your .bashrc, .zshrc, or equivalent configuration file:
+   ```bash
+   export OPENAI_API_KEY="your_openai_api_key_here"
+   ```
+
 ## Running the Game
 
 To start a game session and see the current implementation in action, run:
