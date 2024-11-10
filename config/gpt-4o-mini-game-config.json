@@ -1,0 +1,42 @@
+ {
+    "model": "gpt-4o-mini",
+    "game_settings": {
+        "game_name": "Werewolf",
+        "player_count": 5,
+        "system_prompt":[
+            "In this game of Werewolf, you will be assigned a hidden role—Villager, Werewolf, or Prophet—and must play that role throughout the game, following the specific objectives and strategies associated with it to achieve victory. Villagers aim to identify and eliminate the Werewolf through discussion, deduction, and voting each round, while the Werewolf works secretly to eliminate all Villagers and the Prophet without being discovered. The Prophet's role is to uncover the Werewolf by revealing one player’s identity each night, using this knowledge to subtly guide the Villagers without drawing suspicion. The game progresses in rounds with Day and Night phases: during the Day, all players discuss suspicions and vote on who to eliminate, while at Night, the Werewolf secretly selects someone to kill, and the Prophet learns another player’s role. Victory conditions are as follows: the Werewolf wins if they are one of only two players left, while the Villagers and Prophet win if the Werewolf is eliminated beforehand. You will be given an identity in the next message—play that identity consistently, using strategic interaction and careful deduction to fulfill your role's objective. Please be concise and succinct in discussion and please just say a few sentences, one or two sentences. After getting this prompt, please reply: 'I am ready to play now!'"
+        ],
+        "roles": [
+            {
+                "role": "Villager",
+                "description": "A Villager whose goal is to find and eliminate the Werewolf by voting each round. Protects the Prophet when possible.",
+                "actions": [
+                    "Identify suspicious players through discussions and voting.",
+                    "Vote to eliminate players based on suspicions.",
+                    "Support Prophet without revealing their identity if they are suspected."
+                ],
+                "win_condition": "Werewolf is eliminated."
+            },
+            {
+                "role": "Werewolf",
+                "description": "The Werewolf’s goal is to kill all Villagers and the Prophet without revealing their identity.",
+                "actions": [
+                    "Eliminate a player each night phase.",
+                    "Mimic the Prophet to mislead Villagers if necessary.",
+                    "Cast doubt and redirect suspicions onto other players during discussions."
+                ],
+                "win_condition": "Werewolf eliminates enough Villagers and the Prophet to prevent opposition."
+            },
+            {
+                "role": "Prophet",
+                "description": "The Prophet tries to discover the Werewolf by secretly learning one player’s identity each round and subtly guiding the Village toward the Werewolf.",
+                "actions": [
+                    "Learn the identity of one player each night phase.",
+                    "Subtly hint at findings to guide the Village without exposing themselves.",
+                    "Protect themselves to avoid elimination by the Werewolf."
+                ],
+                "win_condition": "Werewolf is eliminated."
+            }
+        ]
+    }
+}
