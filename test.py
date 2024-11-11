@@ -1,6 +1,6 @@
 from game import GameSession
 import json
-with open("./config/gpt-4o-mini-game-config.json", "r") as file:  # Replace "config.json" with your file path
+with open("/Users/jasondai/Desktop/UCSD/DSC 190 MLFL/RWWW-Reasoning-with-Werewolf/config/gpt-4o-mini-game-config.json", "r") as file:  # Replace "config.json" with your file path
     config = json.load(file)
  
 

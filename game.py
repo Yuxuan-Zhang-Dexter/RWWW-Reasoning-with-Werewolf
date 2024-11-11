@@ -2,6 +2,8 @@ from players import Villager, Werewolf, Prophet
 import json
 import random
 from openai import OpenAI
+from collections import Counter
+import re
 
 class GameSession:
     def __init__(self, config):
@@ -29,7 +31,7 @@ class GameSession:
         random.shuffle(role_names)
         for i in range(player_count):
             role = role_names.pop()
-            players[f"Player_{i + 1}"] = self.initialize_role(role, f'Player_{i + 1}')
+            players[f"player{i + 1}"] = self.initialize_role(role, f'player{i + 1}')
         return players
 
     def display_player_roles(self):
@@ -54,15 +56,17 @@ class GameSession:
 
 
     def play_round(self):
-        if self.phase == "Day":
-            print("Day Phase: Discussion and Voting")
-            self.handle_day_phase()
-            self.phase = "Night"
-        # elif self.phase == "Night":
-        #     print("Night Phase: Werewolf acts, Prophet reveals")
-        #     self.handle_night_phase()
-        #     self.phase = "Day"
-        self.track_round += 1
+        while True:
+            if self.phase == "Day":
+                print(f"Round {self.track_round}: Day Phase - Discussion and Voting")
+                self.handle_day_phase()
+                self.phase = "Night"
+            elif self.phase == "Night":
+                print(f"Round {self.track_round}: Night Phase - Werewolf acts, Prophet reveals")
+                self.handle_night_phase()
+                self.phase = "Day"
+            self.track_round += 1
+
         
     def generate_prompt(self, player, role, action_type):
         if action_type == "discussion":
@@ -110,6 +114,106 @@ class GameSession:
             role.update_chat_history(generated_prompt)
             discussion_history +=  f" {player}: {response} "
         
+        # Voting and eliminating section
+        self.conduct_voting()
+    
+    def conduct_voting(self):
+        while True:  # Continue voting until a player is successfully eliminated
+            # Each player votes for the player they suspect
+            for player in self.alive_players:
+                role = self.players[player]
+                suspect = self.get_vote_from_openai(player, role)
+                self.votes[player] = suspect
+                print(f"{player} votes for {suspect}")
+
+            # Tally votes and determine if there's a tie
+            if not self.tally_votes_and_eliminate():
+                print("A tie occurred, initiating re-vote...")
+            else:
+                break
+
+        
+    def get_vote_from_openai(self, player, role):
+        alive_players_list = list(self.alive_players - {player})  # Players can vote for any other alive player except themselves
+        vote_prompt = [{'role': 'user', 'content': f"{player}, please provide only the name of the player you suspect is the Werewolf. Your options are: {', '.join(alive_players_list)}. No explanations, please."}]
+        response = self.get_response_from_openai(role.chat_history + vote_prompt)
+        vote = response.strip().lower()
+        print(vote)
+        # if vote not in self.alive_players or vote == player:
+        #     print(f"Invalid vote by {player} for {vote}. Re-voting...")
+        #     return self.get_vote_from_openai(player, role)
+        return vote
+    
+    def tally_votes_and_eliminate(self):
+        vote_count = Counter(self.votes.values())
+        most_voted_players = [player for player, count in vote_count.items() if count == max(vote_count.values())]
+        most_votes = max(vote_count.values())
+
+        if len(most_voted_players) == 1:
+            # If there's only one player with the highest votes, they are eliminated
+            most_voted_player = most_voted_players[0]
+            match = re.search(r'player\d+', most_voted_player)
+            if match:
+                most_voted_player = match.group()
+            print(f"{most_voted_player} is eliminated with {most_votes} votes.")
+            self.alive_players.remove(most_voted_player)
+            self.check_game_end_conditions()
+            return True  # Elimination successful
+        else:
+            # If there is a tie, return False to indicate re-voting is needed
+            return False
+  
+    
+    def handle_night_phase(self):
+        # Werewolf chooses a player to eliminate
+        werewolf = [player for player in self.alive_players if self.players[player].name == "Werewolf"][0]
+        target = self.get_werewolf_target(werewolf)
+        print(f"Werewolf {werewolf} eliminates {target}.")
+        if target in self.alive_players:
+            self.alive_players.remove(target)
+
+        if len([player for player in self.alive_players if self.players[player].name == "Prophet"]) > 0:
+            prophet = [player for player in self.alive_players if self.players[player].name == "Prophet"][0]
+            self.prophet_reveal(prophet)
+
+        # Check for game end conditions
+        self.check_game_end_conditions()
+    
+    def get_werewolf_target(self, werewolf):
+        # Generate a prompt asking the Werewolf to choose a target to eliminate
+        target_prompt = [{'role': 'user', 'content': f"{werewolf}, please only output the name of the player you want to eliminate, and please do not provide any explanation."}]
+        response = self.get_response_from_openai(self.players[werewolf].chat_history + target_prompt)
+        target = response.strip().lower()
+        print("The werewolf removes: ", target)
+        return target
+
+    def prophet_reveal(self, prophet):
+        # Generate a prompt asking the Prophet to reveal one player's identity
+        reveal_prompt = [{'role': 'user', 'content': f"{prophet}, please only output the name of the player you want to reveal identity, and please do not provide any explanation."}]
+        response = self.get_response_from_openai(self.players[prophet].chat_history + reveal_prompt)
+        target = response.strip().lower()
+        if target in self.alive_players:
+            revealed_role = self.players[target].name
+            print(f"Prophet {prophet} reveals that {target} is a {revealed_role}.")
+            # Prophet can use this information in subsequent discussions
+            self.players[prophet].update_chat_history([{'role': 'system', 'content': f"{target} is a {revealed_role}"}])
+    
+    def check_game_end_conditions(self):
+        werewolf_alive = any(self.players[player].name == "Werewolf" for player in self.alive_players)
+        villagers_alive = any(self.players[player].name == "Villager" or self.players[player].name == "Prophet" for player in self.alive_players)
+
+        if not werewolf_alive:
+            print("Villagers win! The Werewolf has been eliminated.")
+            exit()
+        elif not villagers_alive:
+            print("Werewolf wins! All Villagers and the Prophet have been eliminated.")
+            exit()
+        elif len(self.alive_players) == 2:
+            # If only two players remain, one Werewolf and one Villager, declare the Werewolf as the winner
+            alive_roles = [self.players[player].name for player in self.alive_players]
+            if "Werewolf" in alive_roles and ("Villager" in alive_roles or "Prophet" in alive_roles):
+                print("Werewolf wins! Only one Villager remains against the Werewolf.")
+                exit()
 
 
             
