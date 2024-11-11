@@ -164,39 +164,39 @@ class GameSession:
             return False
   
     
-    def handle_night_phase(self):
-        # Werewolf chooses a player to eliminate
-        werewolf = [player for player in self.alive_players if self.players[player].name == "Werewolf"][0]
-        target = self.get_werewolf_target(werewolf)
-        print(f"Werewolf {werewolf} eliminates {target}.")
-        if target in self.alive_players:
-            self.alive_players.remove(target)
+    # def handle_night_phase(self):
+    #     # Werewolf chooses a player to eliminate
+    #     werewolf = [player for player in self.alive_players if self.players[player].name == "Werewolf"][0]
+    #     target = self.get_werewolf_target(werewolf)
+    #     print(f"Werewolf {werewolf} eliminates {target}.")
+    #     if target in self.alive_players:
+    #         self.alive_players.remove(target)
 
-        if len([player for player in self.alive_players if self.players[player].name == "Prophet"]) > 0:
-            prophet = [player for player in self.alive_players if self.players[player].name == "Prophet"][0]
-            self.prophet_reveal(prophet)
+    #     if len([player for player in self.alive_players if self.players[player].name == "Prophet"]) > 0:
+    #         prophet = [player for player in self.alive_players if self.players[player].name == "Prophet"][0]
+    #         self.prophet_reveal(prophet)
 
-        # Check for game end conditions
-        self.check_game_end_conditions()
+    #     # Check for game end conditions
+    #     self.check_game_end_conditions()
     
-    def get_werewolf_target(self, werewolf):
-        # Generate a prompt asking the Werewolf to choose a target to eliminate
-        target_prompt = [{'role': 'user', 'content': f"{werewolf}, please only output the name of the player you want to eliminate, and please do not provide any explanation."}]
-        response = self.get_response_from_openai(self.players[werewolf].chat_history + target_prompt)
-        target = response.strip().lower()
-        print("The werewolf removes: ", target)
-        return target
+    # def get_werewolf_target(self, werewolf):
+    #     # Generate a prompt asking the Werewolf to choose a target to eliminate
+    #     target_prompt = [{'role': 'user', 'content': f"{werewolf}, please only output the name of the player you want to eliminate, and please do not provide any explanation."}]
+    #     response = self.get_response_from_openai(self.players[werewolf].chat_history + target_prompt)
+    #     target = response.strip().lower()
+    #     print("The werewolf removes: ", target)
+    #     return target
 
-    def prophet_reveal(self, prophet):
-        # Generate a prompt asking the Prophet to reveal one player's identity
-        reveal_prompt = [{'role': 'user', 'content': f"{prophet}, please only output the name of the player you want to reveal identity, and please do not provide any explanation."}]
-        response = self.get_response_from_openai(self.players[prophet].chat_history + reveal_prompt)
-        target = response.strip().lower()
-        if target in self.alive_players:
-            revealed_role = self.players[target].name
-            print(f"Prophet {prophet} reveals that {target} is a {revealed_role}.")
-            # Prophet can use this information in subsequent discussions
-            self.players[prophet].update_chat_history([{'role': 'system', 'content': f"{target} is a {revealed_role}"}])
+    # def prophet_reveal(self, prophet):
+    #     # Generate a prompt asking the Prophet to reveal one player's identity
+    #     reveal_prompt = [{'role': 'user', 'content': f"{prophet}, please only output the name of the player you want to reveal identity, and please do not provide any explanation."}]
+    #     response = self.get_response_from_openai(self.players[prophet].chat_history + reveal_prompt)
+    #     target = response.strip().lower()
+    #     if target in self.alive_players:
+    #         revealed_role = self.players[target].name
+    #         print(f"Prophet {prophet} reveals that {target} is a {revealed_role}.")
+    #         # Prophet can use this information in subsequent discussions
+    #         self.players[prophet].update_chat_history([{'role': 'system', 'content': f"{target} is a {revealed_role}"}])
     
     def check_game_end_conditions(self):
         werewolf_alive = any(self.players[player].name == "Werewolf" for player in self.alive_players)
