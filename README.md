@@ -7,6 +7,7 @@ RWWW (Reasoning with Werewolf) is a Python-based simulation of the popular socia
 The project currently supports:
 - **Game Session Logic**: The main game logic is encapsulated in `game.py`, which sets up a game session with different roles, prompts, and interactions.
 - **Daytime Discussion Phase**: Players engage in discussions to deduce each other’s roles.
+- **Night Phase**: Players conduct action and win condition is checked.
 - **Test Script**: `test.py` allows you to run a sample game session.
 
 ## Setup and Installation
@@ -50,17 +51,17 @@ The output will display players discussing who they suspect to be the Werewolf, 
 
 3. **Prompt Generation**:
    - Initial prompts guide each role's behavior during discussions. This allows each AI agent to align its responses with its assigned role.
+  
+4. **Night Phase**:
+   - Add Werewolf elimination logic and Prophet’s nightly revelation of one player’s identity. This also includes examine the win condition at the end of each night phase.
 
 ### Next Steps
 
-1. **Implementing the Night Phase**:
-   - Add Werewolf elimination logic and Prophet’s nightly revelation of one player’s identity.
-
-2. **Game Logic Enhancements**:
+1. **Game Logic Enhancements**:
    - Develop voting mechanics and victory conditions to complete the gameplay loop.
    - Enable player elimination based on the discussions and voting outcomes.
 
-3. **Prompt Optimization**:
+2. **Prompt Optimization**:
    - Improve prompt structures to enhance each role’s reasoning and alignment with game strategies.
    - Experiment with prompt variations for better AI-driven interaction.
 
