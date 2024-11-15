@@ -3,7 +3,7 @@ class Villager(Role):
     def __init__(self, player):
         super().__init__(
             name="Villager",
-            description="A Villager whose goal is to find and eliminate the Werewolf by voting each round. Protects the Prophet when possible.",
+            description="A Villager's goal is to find and eliminate the Werewolf by voting each round. Villagers may protect the Prophet when possible.",
             actions={
                 "discussion": "Engage in discussions to identify suspicious behaviors and spot the Werewolf.",
                 "vote": "Vote to eliminate players suspected of being the Werewolf."
